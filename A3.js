@@ -141,16 +141,23 @@ for (let shader of Object.values(shaders)) {
 
     sphereLight.parent = worldFrame;
     scene.add(sphereLight);
-  } else {
-    // If there's no helmet, then only place the snowman. i.e. key 1, 2
-    loadAndPlaceOBJ('obj/snowman.obj', shader.material, function (snowman) {
-      snowman.position.set(0.0, 0.0, -10.0);
-      snowman.rotation.y = 0.0;
-      snowman.scale.set(1.0e-3, 1.0e-3, 1.0e-3);
-      snowman.parent = worldFrame;
-      scene.add(snowman);
-    });
+  } 
+  else {
+    mode = shaders.RAYMARCHING.key;
+    ({ scene, camera } = createRayMarchingScene(canvas, renderer));
+    const plane = new THREE.PlaneGeometry(2, 2);
+    scene.add(new THREE.Mesh(plane, shaders.RAYMARCHING.material));
   }
+  //  else {
+  //   // If there's no helmet, then only place the snowman. i.e. key 1, 2
+  //   loadAndPlaceOBJ('obj/snowman.obj', shader.material, function (snowman) {
+  //     snowman.position.set(0.0, 0.0, -10.0);
+  //     snowman.rotation.y = 0.0;
+  //     snowman.scale.set(1.0e-3, 1.0e-3, 1.0e-3);
+  //     snowman.parent = worldFrame;
+  //     scene.add(snowman);
+  //   });
+  // }
 
   scenes.push({ scene, camera });
 }

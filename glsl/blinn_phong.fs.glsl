@@ -1,4 +1,3 @@
-
 uniform vec3 ambientColor;
 uniform float kAmbient;
 
@@ -13,17 +12,32 @@ uniform mat4 modelMatrix;
 
 uniform vec3 spherePosition;
 
-// The value of our shared variable is given as the interpolation between normals computed in the vertex shader
-// below we can see the shared variable we passed from the vertex shader using the 'in' classifier
+// These are interpolated from the vertex shader:
 in vec3 interpolatedNormal;
 in vec3 viewPosition;
 in vec3 worldPosition;
 
+void main () {
+    // Normalize the interpolated normal (assumed to be in world space)
+    vec3 N = normalize (interpolatedNormal);
 
-void main() {
-    // TODO:
-    // HINT: compute the following - light direction, ambient + diffuse + specular component,
-    // then set the final color as a combination of these components
-    
-    gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+    // Compute the light direction (from the fragment to the light source)
+    vec3 L = normalize (spherePosition - worldPosition);
+    // Ambient component:
+    vec3 ambient = kAmbient * ambientColor;
+
+    // Diffuse component: based on Lambert's cosine law
+    float diffusionIntensity = max (dot (N, L), 0.0);
+    vec3 diffuse = kDiffuse * diffusionIntensity * diffuseColor;
+
+    // Specular component: using Blinn–Phong
+    vec3 viewDir = normalize (cameraPosition - worldPosition);
+    vec3 halfDir = normalize (L + viewDir);
+    float phongFactor = pow (max (dot (N, halfDir), 0.0), shininess);
+    vec3 specular = kSpecular * phongFactor * specularColor;
+
+    // Combine all components
+    // vec3 finalColor = ambient + diffuse + specular;
+    vec3 finalColor = ambient + diffuse + specular;
+    gl_FragColor = vec4 (finalColor, 1.0);
 }
