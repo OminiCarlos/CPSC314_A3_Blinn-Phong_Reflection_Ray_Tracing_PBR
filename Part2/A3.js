@@ -35,6 +35,16 @@ const shininess = { type: "f", value: 50.0 };
 const ticks = { type: "f", value: 0.0 };
 const resolution = { type: "v3", value: new THREE.Vector3() };
 
+const yzClippingPlane = new THREE.Plane(new THREE.Vector3(1, 0, 0), 0);
+const planeGeometry = new THREE.PlaneGeometry(20, 30); // Adjust size as needed
+const planeMaterial = new THREE.MeshBasicMaterial({
+  color: 0xff0000,
+  side: THREE.DoubleSide,
+  transparent: true,
+  opacity: 0.5 // semi-transparent so you can see through it
+});
+const clippingPlaneHelper = new THREE.Mesh(planeGeometry, planeMaterial);
+
 const sphereLight = new THREE.PointLight(0xffffff, 200);
 
 // Shader materials
@@ -114,13 +124,17 @@ const helmetPBRMaterial = new THREE.MeshStandardMaterial({
   emissiveMap: helmetEmissiveMap,
   aoMap: helmetAOMap,
 
+  // TODO: set the material's emissive color and metalness
   // Set default values for metalness and roughness:
   metalness: 1.0, // High metalness for a damaged sci-fi helmet (adjust as needed)
   roughness: 0.5, // Adjust roughness to control how shiny the helmet is
-  emissive: new THREE.Color(0xffffff) // Start with no emissive color, adjust if needed
+  emissive: new THREE.Color(0xffffff), // Start with no emissive color, adjust if needed
+
+  clippingPlanes: [yzClippingPlane],
+  clipShadows: true,
+  alphaToCoverage: true
 });
 
-// TODO: set the material's emissive color and metalness
 
 // Load shaders
 const shaderFiles = [
@@ -152,6 +166,8 @@ const shaders = {
 
 let mode = shaders.BLINNPHONG.key; // Default
 
+renderer.localClippingEnabled = true;
+let damagedHelmet;
 // Set up scenes
 let scenes = [];
 for (let shader of Object.values(shaders)) {
@@ -179,20 +195,19 @@ for (let shader of Object.values(shaders)) {
       "gltf/DamagedHelmet.glb",
       shaders.PBR.material,
       function (helmet) {
+        helmet.name = "DamagedHelmet";
         helmet.position.set(0, 0, -10.0);
         helmet.scale.set(7, 7, 7);
         helmet.parent = worldFrame;
         scene.add(helmet);
       }
     );
-
     const ambientLight = new THREE.AmbientLight(0xffffff, 3.0);
     scene.add(ambientLight);
 
     sphereLight.parent = worldFrame;
     scene.add(sphereLight);
-  }
-  else {
+  } else {
     loadAndPlaceGLB(
       "gltf/DamagedHelmet.glb",
       shaders.PBR.material,
@@ -201,6 +216,19 @@ for (let shader of Object.values(shaders)) {
         helmet.scale.set(7, 7, 7);
         helmet.parent = worldFrame;
         scene.add(helmet);
+        damagedHelmet = helmet;
+        scene.add(clippingPlaneHelper);
+        // Rotate helper plane so that its normal points in the x direction.
+        clippingPlaneHelper.rotation.y = -Math.PI / 2; // rotates plane so that (0,0,1) becomes (1,0,0)
+
+        // Update its position along x based on the clipping plane constant.
+        clippingPlaneHelper.position.x = -yzClippingPlane.constant;
+        const helmetWorldPosition = new THREE.Vector3();
+        damagedHelmet.getWorldPosition(helmetWorldPosition);
+        clippingPlaneHelper.position.y = helmetWorldPosition.y;
+        clippingPlaneHelper.position.z = helmetWorldPosition.z;
+        
+        // (Note: the sign might be adjusted depending on the coordinate system convention)
       }
     );
 
@@ -223,6 +251,29 @@ for (let shader of Object.values(shaders)) {
   scenes.push({ scene, camera });
 }
 
+
+function rotateHelmet(){
+  damagedHelmet.rotation.y += 0.01;
+}
+
+function getNeonFlickerIntensity(time) {
+  // A sine wave for a baseline periodic fluctuation.
+  const periodic = Math.sin(time * 20);
+
+  // Occasionally, we want to simulate a sudden drop in intensity.
+  // For instance, with a 10% chance each frame, drop the intensity.
+  const dropChance = 0.1;
+  const drop = Math.random() < dropChance ? 0.3 : 1.0;
+
+  // Combine the periodic fluctuation with the random drop.
+  // Adjust the multipliers to achieve your desired neon effect.
+  const baseIntensity = 1.0;
+  const flicker = baseIntensity + 0.3 * periodic;
+
+  // Apply the drop factor.
+  return flicker * drop;
+}
+
 // Listen to keyboard events.
 const keyboard = new THREEx.KeyboardState();
 function checkKeyboard() {
@@ -239,6 +290,14 @@ function checkKeyboard() {
 
     if (keyboard.pressed("E")) spherePosition.value.y -= 0.3;
     else if (keyboard.pressed("Q")) spherePosition.value.y += 0.3;
+
+    if (keyboard.pressed("Z")) {
+      yzClippingPlane.constant -= 0.3;
+      clippingPlaneHelper.position.x = -yzClippingPlane.constant;
+    } else if (keyboard.pressed("C")) {
+      yzClippingPlane.constant += 0.3;
+      clippingPlaneHelper.position.x = -yzClippingPlane.constant;
+    }
 
     sphereLight.position.set(
       spherePosition.value.x,
@@ -258,11 +317,18 @@ function checkKeyboard() {
 }
 
 let clock = new THREE.Clock();
-
+let startTime = Date.now();
 // Setup update callback
 function update() {
   checkKeyboard();
   ticks.value += clock.getDelta();
+  const currentTime = Date.now();
+  const time = (currentTime - startTime) / 1000;
+  if (damagedHelmet) {
+    rotateHelmet();
+  }
+  
+  helmetPBRMaterial.emissiveIntensity = getNeonFlickerIntensity(time);
 
   // Requests the next update call, this creates a loop
   requestAnimationFrame(update);
