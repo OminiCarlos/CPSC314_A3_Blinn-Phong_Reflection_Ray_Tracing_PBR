@@ -7,11 +7,12 @@ import {
   createScene,
   createRayMarchingScene,
   loadAndPlaceGLB,
-  loadAndPlaceOBJ
+  loadAndPlaceOBJ,
 } from "./js/setup.js";
 import * as THREE from "./js/three.module.js";
 import { SourceLoader } from "./js/SourceLoader.js";
 import { THREEx } from "./js/KeyboardState.js";
+
 
 // Setup the renderer
 // You should look into js/setup.js to see what exactly is done here.
@@ -35,23 +36,39 @@ const shininess = { type: "f", value: 50.0 };
 const ticks = { type: "f", value: 0.0 };
 const resolution = { type: "v3", value: new THREE.Vector3() };
 
-const yzClippingPlane = new THREE.Plane(new THREE.Vector3(1, 0, 0), 0);
+const xyClippingPlaneFar = new THREE.Plane(new THREE.Vector3(0, 0, -1), 8);
+const xyClippingPlaneNear = new THREE.Plane(new THREE.Vector3(0, 0, 1), 4);
 const planeGeometry = new THREE.PlaneGeometry(20, 30); // Adjust size as needed
 const planeMaterial = new THREE.MeshBasicMaterial({
   color: 0xff0000,
   side: THREE.DoubleSide,
   transparent: true,
-  opacity: 0.5 // semi-transparent so you can see through it
+  opacity: 0.5, // semi-transparent so you can see through it
 });
-const clippingPlaneHelper = new THREE.Mesh(planeGeometry, planeMaterial);
+const clippingPlaneHelper1 = new THREE.Mesh(planeGeometry, planeMaterial);
+const clippingPlaneHelper2 = new THREE.Mesh(planeGeometry, planeMaterial);
 
 const sphereLight = new THREE.PointLight(0xffffff, 200);
+
+
+const barLight = new THREE.SpotLight(0xffffff, 2000, 50, Math.PI / 8, 0);
+// Create a plane that represents the light's area.
+const barGeometry = new THREE.PlaneGeometry(10, 1); // 10 units wide, 1 unit tall
+const barMaterial = new THREE.MeshBasicMaterial({
+  color: 0xffffff,
+  side: THREE.DoubleSide,
+  transparent: false,
+  opacity: 0.5
+});
+const lightBarHelper = new THREE.Mesh(barGeometry, barMaterial);
+
+
 
 // Shader materials
 const sphereMaterial = new THREE.ShaderMaterial({
   uniforms: {
-    spherePosition: spherePosition
-  }
+    spherePosition: spherePosition,
+  },
 });
 
 const blinnPhongMaterial = new THREE.ShaderMaterial({
@@ -63,15 +80,15 @@ const blinnPhongMaterial = new THREE.ShaderMaterial({
     kAmbient: kAmbient,
     kDiffuse: kDiffuse,
     kSpecular: kSpecular,
-    shininess: shininess
-  }
+    shininess: shininess,
+  },
 });
 
 const rayMarchingMaterial = new THREE.ShaderMaterial({
   uniforms: {
     time: ticks,
-    resolution: resolution
-  }
+    resolution: resolution,
+  },
 });
 
 const helmetAlbedoMap = new THREE.TextureLoader().load(
@@ -130,11 +147,10 @@ const helmetPBRMaterial = new THREE.MeshStandardMaterial({
   roughness: 0.5, // Adjust roughness to control how shiny the helmet is
   emissive: new THREE.Color(0xffffff), // Start with no emissive color, adjust if needed
 
-  clippingPlanes: [yzClippingPlane],
+  clippingPlanes: [xyClippingPlaneNear, xyClippingPlaneFar],
   clipShadows: true,
-  alphaToCoverage: true
+  alphaToCoverage: true,
 });
-
 
 // Load shaders
 const shaderFiles = [
@@ -143,7 +159,7 @@ const shaderFiles = [
   "glsl/blinn_phong.vs.glsl",
   "glsl/blinn_phong.fs.glsl",
   "glsl/raymarching.vs.glsl",
-  "glsl/raymarching.fs.glsl"
+  "glsl/raymarching.fs.glsl",
 ];
 
 new SourceLoader().load(shaderFiles, function (shaders) {
@@ -161,7 +177,7 @@ new SourceLoader().load(shaderFiles, function (shaders) {
 const shaders = {
   BLINNPHONG: { key: 0, material: blinnPhongMaterial },
   RAYMARCHING: { key: 1, material: rayMarchingMaterial },
-  PBR: { key: 2, material: helmetPBRMaterial }
+  PBR: { key: 2, material: helmetPBRMaterial },
 };
 
 let mode = shaders.BLINNPHONG.key; // Default
@@ -180,18 +196,42 @@ for (let shader of Object.values(shaders)) {
   } else {
     ({ scene, camera, worldFrame } = createScene(canvas, renderer));
 
-    // Create the main sphere geometry (light source)
-    // https://threejs.org/docs/#api/en/geometries/SphereGeometry
-    const sphereGeometry = new THREE.SphereGeometry(1.0, 32.0, 32.0);
-    const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
-    sphere.position.set(0.0, 1.5, 0.0);
-    sphere.parent = worldFrame;
-    scene.add(sphere);
+    // // Create the main sphere geometry (light source)
+    // // https://threejs.org/docs/#api/en/geometries/SphereGeometry
+    // const sphereGeometry = new THREE.SphereGeometry(1.0, 32.0, 32.0);
+    // const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+    // sphere.position.set(0.0, 1.5, 0.0);
+    // sphere.parent = worldFrame;
+    // scene.add(sphere);
   }
 
   // Load the helmet, for scene key 3.
   if (shader.material == helmetPBRMaterial) {
-     loadAndPlaceGLB(
+    //  loadAndPlaceGLB(
+    //   "gltf/DamagedHelmet.glb",
+    //   shaders.PBR.material,
+    //   function (helmet) {
+    //     helmet.position.set(0, 0, -10.0);
+    //     helmet.scale.set(7, 7, 7);
+    //     helmet.parent = worldFrame;
+    //     scene.add(helmet);
+    //     damagedHelmet = helmet;
+    //     scene.add(clippingPlaneHelper);
+    //     // Rotate helper plane so that its normal points in the x direction.
+    //     clippingPlaneHelper.rotation.y = -Math.PI / 2; // rotates plane so that (0,0,1) becomes (1,0,0)
+    //     // Update its position along x based on the clipping plane constant.
+    //     clippingPlaneHelper.position.x = -yzClippingPlane.constant;
+    //     const helmetWorldPosition = new THREE.Vector3();
+    //     damagedHelmet.getWorldPosition(helmetWorldPosition);
+    //     clippingPlaneHelper.position.y = helmetWorldPosition.y;
+    //     clippingPlaneHelper.position.z = helmetWorldPosition.z;
+    //   }
+    // );
+    // const ambientLight = new THREE.AmbientLight(0xffffff, 3.0);
+    // // scene.add(ambientLight);
+    // sphereLight.parent = worldFrame;
+  } else {
+    loadAndPlaceGLB(
       "gltf/DamagedHelmet.glb",
       shaders.PBR.material,
       function (helmet) {
@@ -200,41 +240,50 @@ for (let shader of Object.values(shaders)) {
         helmet.parent = worldFrame;
         scene.add(helmet);
         damagedHelmet = helmet;
-        scene.add(clippingPlaneHelper);
-        // Rotate helper plane so that its normal points in the x direction.
-        clippingPlaneHelper.rotation.y = -Math.PI / 2; // rotates plane so that (0,0,1) becomes (1,0,0)
-
-        // Update its position along x based on the clipping plane constant.
-        clippingPlaneHelper.position.x = -yzClippingPlane.constant;
-        const helmetWorldPosition = new THREE.Vector3();
-        damagedHelmet.getWorldPosition(helmetWorldPosition);
-        clippingPlaneHelper.position.y = helmetWorldPosition.y;
-        clippingPlaneHelper.position.z = helmetWorldPosition.z;
+        barLight.position.set(0,20,10);
+        scene.add(barLight.target);
+        barLight.target.position.set(0, 0, 10);
+        scene.add(barLight);
+        // Position the helper at the light's position (adjust as needed)
+        // lightBarHelper.position.copy(barLight.position);
+        // // Orient it to face the target (a simple approach is to lookAt the target)
+        // lightBarHelper.lookAt(barLight.target.position);
+        // scene.add(lightBarHelper);
+        
+        // scene.add(clippingPlaneHelper1);
+        // // Rotate helper plane so that its normal points in the x direction.
+        // clippingPlaneHelper1.position.z = -xyClippingPlaneNear.constant;
+        // scene.add(clippingPlaneHelper2);
+        // // Rotate helper plane so that its normal points in the x direction.
+        // clippingPlaneHelper2.position.z = xyClippingPlaneFar.constant;
       }
     );
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 3.0);
-    scene.add(ambientLight);
+    // const ambientLight = new THREE.AmbientLight(0xffffff, 0.0);
+    // scene.add(ambientLight);
 
     sphereLight.parent = worldFrame;
-  } 
-  else {
-    // If there's no helmet, then only place the snowman. i.e. key 1, 2
-    loadAndPlaceOBJ("obj/snowman.obj", shader.material, function (snowman) {
-      snowman.position.set(0.0, 0.0, -10.0);
-      snowman.rotation.y = 0.0;
-      snowman.scale.set(1.0e-3, 1.0e-3, 1.0e-3);
-      snowman.parent = worldFrame;
-      scene.add(snowman);
-    });
   }
+  // else {
+  //   // If there's no helmet, then only place the snowman. i.e. key 1, 2
+  //   loadAndPlaceOBJ("obj/snowman.obj", shader.material, function (snowman) {
+  //     snowman.position.set(0.0, 0.0, -10.0);
+  //     snowman.rotation.y = 0.0;
+  //     snowman.scale.set(1.0e-3, 1.0e-3, 1.0e-3);
+  //     snowman.parent = worldFrame;
+  //     scene.add(snowman);
+  //   });
+  // }
 
   scenes.push({ scene, camera });
 }
 
-
-function rotateHelmet(){
-  damagedHelmet.rotation.y += 0.01;
+function forwardHelmet() {
+  if (damagedHelmet.position.z <= 16) {
+    damagedHelmet.position.z += 0.05;
+  } else {
+    damagedHelmet.position.z = -12.0;
+  }
 }
 
 function getNeonFlickerIntensity(time) {
@@ -272,13 +321,6 @@ function checkKeyboard() {
     if (keyboard.pressed("E")) spherePosition.value.y -= 0.3;
     else if (keyboard.pressed("Q")) spherePosition.value.y += 0.3;
 
-    if (keyboard.pressed("Z")) {
-      yzClippingPlane.constant -= 0.3;
-      clippingPlaneHelper.position.x = -yzClippingPlane.constant;
-    } else if (keyboard.pressed("C")) {
-      yzClippingPlane.constant += 0.3;
-      clippingPlaneHelper.position.x = -yzClippingPlane.constant;
-    }
 
     sphereLight.position.set(
       spherePosition.value.x,
@@ -306,9 +348,9 @@ function update() {
   const currentTime = Date.now();
   const time = (currentTime - startTime) / 1000;
   if (damagedHelmet) {
-    rotateHelmet();
+    forwardHelmet();
   }
-  
+
   helmetPBRMaterial.emissiveIntensity = getNeonFlickerIntensity(time);
 
   // Requests the next update call, this creates a loop

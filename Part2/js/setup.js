@@ -22,7 +22,7 @@ function setup() {
 
     // Construct a THREEjs renderer from the canvas and context.
     const renderer = new THREE.WebGLRenderer({ antialias: true, canvas, context });
-    renderer.setClearColor(0X80CEE1); // blue background colour
+    renderer.setClearColor(0X000000); // blue background colour
     // renderer.autoClearColor = false;3
     
     return {
