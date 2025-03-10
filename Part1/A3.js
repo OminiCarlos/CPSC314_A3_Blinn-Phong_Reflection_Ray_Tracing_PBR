@@ -192,33 +192,33 @@ for (let shader of Object.values(shaders)) {
     sphereLight.parent = worldFrame;
     scene.add(sphereLight);
   }
-  else {
-    loadAndPlaceGLB(
-      "gltf/DamagedHelmet.glb",
-      shaders.PBR.material,
-      function (helmet) {
-        helmet.position.set(0, 0, -10.0);
-        helmet.scale.set(7, 7, 7);
-        helmet.parent = worldFrame;
-        scene.add(helmet);
-      }
-    );
-
-    const ambientLight = new THREE.AmbientLight(0xffffff, 3.0);
-    scene.add(ambientLight);
-
-    sphereLight.parent = worldFrame;
-  }
   // else {
-  //   // If there's no helmet, then only place the snowman. i.e. key 1, 2
-  //   loadAndPlaceOBJ("obj/snowman.obj", shader.material, function (snowman) {
-  //     snowman.position.set(0.0, 0.0, -10.0);
-  //     snowman.rotation.y = 0.0;
-  //     snowman.scale.set(1.0e-3, 1.0e-3, 1.0e-3);
-  //     snowman.parent = worldFrame;
-  //     scene.add(snowman);
-  //   });
+  //   loadAndPlaceGLB(
+  //     "gltf/DamagedHelmet.glb",
+  //     shaders.PBR.material,
+  //     function (helmet) {
+  //       helmet.position.set(0, 0, -10.0);
+  //       helmet.scale.set(7, 7, 7);
+  //       helmet.parent = worldFrame;
+  //       scene.add(helmet);
+  //     }
+  //   );
+
+  //   const ambientLight = new THREE.AmbientLight(0xffffff, 3.0);
+  //   scene.add(ambientLight);
+
+  //   sphereLight.parent = worldFrame;
   // }
+  else {
+    // If there's no helmet, then only place the snowman. i.e. key 1, 2
+    loadAndPlaceOBJ("obj/snowman.obj", shader.material, function (snowman) {
+      snowman.position.set(0.0, 0.0, -10.0);
+      snowman.rotation.y = 0.0;
+      snowman.scale.set(1.0e-3, 1.0e-3, 1.0e-3);
+      snowman.parent = worldFrame;
+      scene.add(snowman);
+    });
+  }
 
   scenes.push({ scene, camera });
 }
