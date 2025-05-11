@@ -47,5 +47,5 @@ Controls:
 
 
 You can see a video demo here:
-[![Watch the video]()](https://www.youtube.com/watch?v=RdYNH5DE-g4)
+[![Watch the video](https://github.com/OminiCarlos/CPSC314_A3_Blinn-Phong_Reflection_Ray_Tracing_PBR/blob/master/A3_Demo-Cover.jpg)](https://www.youtube.com/watch?v=RdYNH5DE-g4)
 
