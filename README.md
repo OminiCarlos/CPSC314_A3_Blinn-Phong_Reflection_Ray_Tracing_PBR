@@ -44,3 +44,8 @@ Controls:
 
 * Use mouse to orbit the scene (Three.js OrbitControls).
 * Use keys `1`, `2`, `3` to toggle scenes.
+
+
+You can see a video demo here:
+[![Watch the video]()](https://www.youtube.com/watch?v=RdYNH5DE-g4)
+
