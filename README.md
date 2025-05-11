@@ -46,6 +46,6 @@ Controls:
 * Use keys `1`, `2`, `3` to toggle scenes.
 
 
-You can see a video demo here:
+You can see a video demo here (Click the picture):
 [![Watch the video](https://github.com/OminiCarlos/CPSC314_A3_Blinn-Phong_Reflection_Ray_Tracing_PBR/blob/master/A3_Demo-Cover.jpg)](https://www.youtube.com/watch?v=RdYNH5DE-g4)
 
